@@ -8,19 +8,32 @@ var foundExercises = false;
 var exerciseCache = null;
 
 const dataDir = path.join(process.cwd(), "../exercises");
+const mediaPathBase = "/v1/static/"
 
 function loadExercises() {
     if (foundExercises && exerciseCache) return exerciseCache;
 
     const files = fs.readdirSync(dataDir).filter(f => f.endsWith(".json"));
     exerciseCache = files.map(f => {
-        const content = fs.readFileSync(path.join(dataDir, f), "utf8");
+        var content = fs.readFileSync(path.join(dataDir, f), "utf8");
         console.log(`REMOVE: Loading exercise file: ${f}`);
-
+        var id = f.replace(".json", "")
+        var mediaPath = mediaPathBase + id;
         try {
+            content = JSON.parse(content);
+            
+            const mediaPaths = content.images ? [
+                
+                mediaPath + "/image1.jpg",
+                mediaPath + "/image2.jpg",
+                mediaPath + "/animation.gif"
+            ] : [];
+
+            content.images = mediaPaths || [];
+
             let exrData = {
-                id: f.replace(".json", ""),
-                ...JSON.parse(content)
+                id,
+                ...content
             }
             return exrData;
         } catch (e) {
@@ -39,18 +52,21 @@ function searchExerciseById(id) {
     if (!fs.existsSync(filePath))
         return null;
 
-    const data = JSON.parse(fs.readFileSync(filePath, "utf8"));
-    const mediaPath = "/v1/static/" + id + "/";
+    var data = JSON.parse(fs.readFileSync(filePath, "utf8"));
+    // const mediaPath = "/v1/static/" + id + "/";
+    var mediaPath = mediaPathBase + id;
 
     const mediaPaths = data.images ? {
-        image1: mediaPath + "image1.jpg",
-        image2: mediaPath + "image2.jpg",
-        gif: mediaPath + "animation.gif"
+        image1: mediaPath + "/image1.jpg",
+        image2: mediaPath + "/image2.jpg",
+        gif: mediaPath + "/animation.gif"
     } : {};
+
+    data.images = mediaPaths || [];
 
     const exerciseData = {
         id: id,
-        media: mediaPaths ? mediaPaths : null,
+        // media: mediaPaths ? mediaPaths : null,
         ...data
     };
     return exerciseData;
@@ -63,8 +79,10 @@ async function loadStaticAssetByIdAndType(id, type) {
     type = type.replace(".jpg", "").replace(".gif", "");
 
     switch (type) {
+        case "0":
         case "image1":
             return path.join(dir, "0.jpg")
+        case "1": 
         case "image2":
             return path.join(dir, "1.jpg")
         case "animation": 
